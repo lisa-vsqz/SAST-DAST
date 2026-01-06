@@ -28,20 +28,24 @@ jobs:
       # DAST - Levantar app vulnerable
       - name: Start vulnerable app
         run: |
-          node app.js > /tmp/app.log 2>&1 &
-          sleep 5
+          mkdir -p /tmp/app-logs
+          nohup node app.js > /tmp/app-logs/app.log 2>&1 &
+          sleep 3
+          echo "App started, checking if it's running..."
+          curl -s http://localhost:3000 || echo "App not responding yet"
 
       # DAST - Nikto Scan
       - name: Run Nikto DAST
         run: |
+          mkdir -p /tmp/app-logs
           docker run --rm --network host ghcr.io/sullo/nikto \
-          -h http://localhost:3000 -output /tmp/nikto-report.html || true
+          -h http://localhost:3000 -output /tmp/app-logs/nikto-report.html || true
           echo "Nikto scan completed"
 
       # Mostrar logs de la app
       - name: Show app logs
         if: always()
-        run: cat /tmp/app.log || echo "No app log found"
+        run: cat /tmp/app-logs/app.log 2>/dev/null || echo "No app log found"
 
       # Subir reportes (solo si existen)
       - name: Upload security reports
@@ -49,5 +53,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
-          path: /tmp/
+          path: /tmp/app-logs/
           if-no-files-found: ignore
