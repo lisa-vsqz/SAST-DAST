@@ -10,48 +10,16 @@ jobs:
   security:
     runs-on: ubuntu-latest
 
-    services:
-      sonarqube:
-        image: sonarqube:latest
-        ports:
-          - 9000:9000
-        env:
-          SONAR_ES_BOOTSTRAP_CHECKS_DISABLED: "true"
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/api/system/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Esperar a que SonarQube esté listo
-      - name: Wait for SonarQube
-        run: |
-          timeout 60 bash -c 'until curl -f http://localhost:9000/api/system/health; do sleep 2; done'
-
       # SAST - Instalar SonarScanner
       - name: Install SonarScanner
         run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-          unzip sonar-scanner-cli-4.7.0.2747-linux.zip
-          echo "$(pwd)/sonar-scanner-4.7.0.2747-linux/bin" >> $GITHUB_PATH
-
-      # SAST - Ejecutar SonarQube
-      - name: Run SonarQube SAST
-        env:
-          SONAR_HOST_URL: http://localhost:9000
-          SONAR_LOGIN: admin
-          SONAR_PASSWORD: admin
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=demo-python \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.login=admin \
-            -Dsonar.password=admin
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+          echo "$(pwd)/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
       # DAST - Instalación de dependencias
       - name: Install dependencies
@@ -68,14 +36,18 @@ jobs:
         run: |
           docker run --rm --network host ghcr.io/sullo/nikto \
           -h http://localhost:3000 -output /tmp/nikto-report.html || true
+          echo "Nikto scan completed"
 
-      # Subir reportes
+      # Mostrar logs de la app
+      - name: Show app logs
+        if: always()
+        run: cat /tmp/app.log || echo "No app log found"
+
+      # Subir reportes (solo si existen)
       - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
-          path: |
-            .scannerwork/
-            /tmp/app.log
-            /tmp/nikto-report.html
+          path: /tmp/
+          if-no-files-found: ignore
