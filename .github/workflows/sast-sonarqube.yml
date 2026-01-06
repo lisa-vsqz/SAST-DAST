@@ -10,16 +10,48 @@ jobs:
   security:
     runs-on: ubuntu-latest
 
+    services:
+      sonarqube:
+        image: sonarqube:latest
+        ports:
+          - 9000:9000
+        env:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLED: "true"
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/api/system/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # SAST - SonarQube
+      # Esperar a que SonarQube esté listo
+      - name: Wait for SonarQube
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:9000/api/system/health; do sleep 2; done'
+
+      # SAST - Instalar SonarScanner
+      - name: Install SonarScanner
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+          unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+          echo "$(pwd)/sonar-scanner-4.7.0.2747-linux/bin" >> $GITHUB_PATH
+
+      # SAST - Ejecutar SonarQube
       - name: Run SonarQube SAST
-        uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: http://localhost:9000
+          SONAR_LOGIN: admin
+          SONAR_PASSWORD: admin
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=demo-python \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=admin \
+            -Dsonar.password=admin
 
       # DAST - Instalación de dependencias
       - name: Install dependencies
@@ -35,10 +67,10 @@ jobs:
       - name: Run Nikto DAST
         run: |
           docker run --rm --network host ghcr.io/sullo/nikto \
-          -h http://localhost:3000 || true
+          -h http://localhost:3000 -output /tmp/nikto-report.html || true
 
-      # Subir reporte de seguridad
-      - name: Upload security report
+      # Subir reportes
+      - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -46,3 +78,4 @@ jobs:
           path: |
             .scannerwork/
             /tmp/app.log
+            /tmp/nikto-report.html

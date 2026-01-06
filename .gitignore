@@ -1,0 +1,11 @@
+node_modules/
+.npm/
+dist/
+build/
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+sonar-project.properties.bak
+.scannerwork/
