@@ -1,0 +1,48 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # SAST - SonarQube
+      - name: Run SonarQube SAST
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # DAST - Instalación de dependencias
+      - name: Install dependencies
+        run: npm install
+
+      # DAST - Levantar app vulnerable
+      - name: Start vulnerable app
+        run: |
+          node app.js > /tmp/app.log 2>&1 &
+          sleep 5
+
+      # DAST - Nikto Scan
+      - name: Run Nikto DAST
+        run: |
+          docker run --rm --network host ghcr.io/sullo/nikto \
+          -h http://localhost:3000 || true
+
+      # Subir reporte de seguridad
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            .scannerwork/
+            /tmp/app.log
