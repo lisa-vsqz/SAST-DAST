@@ -2,9 +2,9 @@ name: DevSecOps Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   security:
@@ -14,29 +14,25 @@ jobs:
       # 1. Checkout del código
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 2. SAST - Instalar SonarScanner
-      - name: Install SonarScanner
-        run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux.zip
-          unzip sonar-scanner-cli-6.2.1.4610-linux.zip
-          echo "$(pwd)/sonar-scanner-6.2.1.4610-linux/bin" >> $GITHUB_PATH
-
-
-      # 3. SAST - Ejecutar SonarScanner (SonarCloud)
-      - name: Run SonarScanner (SAST)
+      # 2. SAST - Análisis con SonarCloud
+      - name: SonarCloud Scan (SAST)
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          sonar-scanner \
-            -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.organization=$TU_ORGANIZATION_KEY
+        with:
+          args: >
+            -Dsonar.projectKey=PROJECT_KEY_REAL
+            -Dsonar.organization=ORGANIZATION_KEY_REAL
+            -Dsonar.branch.name=main
 
-      # 4. DAST - Instalar dependencias
+      # 3. DAST - Instalar dependencias
       - name: Install dependencies
         run: npm install
 
-      # 5. DAST - Levantar la aplicación
+      # 4. DAST - Levantar la aplicación
       - name: Start vulnerable app
         run: |
           mkdir -p /tmp/app-logs
@@ -45,7 +41,7 @@ jobs:
           echo "Checking application status..."
           curl -s http://localhost:3000 || echo "App not responding"
 
-      # 6. DAST - Escaneo con Nikto
+      # 5. DAST - Escaneo con Nikto
       - name: Run Nikto DAST
         run: |
           docker run --rm --network host ghcr.io/sullo/nikto \
@@ -53,12 +49,12 @@ jobs:
             -output /tmp/app-logs/nikto-report.html || true
           echo "Nikto scan completed"
 
-      # 7. Mostrar logs de la aplicación
+      # 6. Mostrar logs de la aplicación
       - name: Show app logs
         if: always()
         run: cat /tmp/app-logs/app.log 2>/dev/null || echo "No app log found"
 
-      # 8. Subir reportes de seguridad
+      # 7. Subir reportes de seguridad
       - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v4
