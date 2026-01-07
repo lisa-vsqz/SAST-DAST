@@ -24,8 +24,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=PROJECT_KEY_REAL
-            -Dsonar.organization=ORGANIZATION_KEY_REAL
+            -Dsonar.projectKey=$SONAR_TOKEN
+            -Dsonar.organization=$TU_ORGANIZATION_KEY
             -Dsonar.branch.name=main
 
       # 3. DAST - Instalar dependencias
