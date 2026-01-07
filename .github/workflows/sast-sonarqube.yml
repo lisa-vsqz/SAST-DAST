@@ -28,9 +28,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           sonar-scanner \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.organization=TU_ORGANIZATION_KEY
 
-      # 4. DAST - Instalar dependencias de la app
+      # 4. DAST - Instalar dependencias
       - name: Install dependencies
         run: npm install
 
