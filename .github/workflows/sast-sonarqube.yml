@@ -18,9 +18,10 @@ jobs:
       # 2. SAST - Instalar SonarScanner
       - name: Install SonarScanner
         run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner-cli-5.0.1.3006-linux.zip
-          echo "$(pwd)/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux.zip
+          unzip sonar-scanner-cli-6.2.1.4610-linux.zip
+          echo "$(pwd)/sonar-scanner-6.2.1.4610-linux/bin" >> $GITHUB_PATH
+
 
       # 3. SAST - Ejecutar SonarScanner (SonarCloud)
       - name: Run SonarScanner (SAST)
