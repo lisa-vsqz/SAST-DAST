@@ -11,43 +11,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout del código
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # SAST - Instalar SonarScanner
+      # 2. SAST - Instalar SonarScanner
       - name: Install SonarScanner
         run: |
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
           unzip sonar-scanner-cli-5.0.1.3006-linux.zip
           echo "$(pwd)/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      # DAST - Instalación de dependencias
+      # 3. SAST - Ejecutar SonarScanner (SonarCloud)
+      - name: Run SonarScanner (SAST)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner \
+            -Dsonar.login=$SONAR_TOKEN
+
+      # 4. DAST - Instalar dependencias de la app
       - name: Install dependencies
         run: npm install
 
-      # DAST - Levantar app vulnerable
+      # 5. DAST - Levantar la aplicación
       - name: Start vulnerable app
         run: |
           mkdir -p /tmp/app-logs
           nohup node app.js > /tmp/app-logs/app.log 2>&1 &
-          sleep 3
-          echo "App started, checking if it's running..."
-          curl -s http://localhost:3000 || echo "App not responding yet"
+          sleep 5
+          echo "Checking application status..."
+          curl -s http://localhost:3000 || echo "App not responding"
 
-      # DAST - Nikto Scan
+      # 6. DAST - Escaneo con Nikto
       - name: Run Nikto DAST
         run: |
-          mkdir -p /tmp/app-logs
           docker run --rm --network host ghcr.io/sullo/nikto \
-          -h http://localhost:3000 -output /tmp/app-logs/nikto-report.html || true
+            -h http://localhost:3000 \
+            -output /tmp/app-logs/nikto-report.html || true
           echo "Nikto scan completed"
 
-      # Mostrar logs de la app
+      # 7. Mostrar logs de la aplicación
       - name: Show app logs
         if: always()
         run: cat /tmp/app-logs/app.log 2>/dev/null || echo "No app log found"
 
-      # Subir reportes (solo si existen)
+      # 8. Subir reportes de seguridad
       - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v4
