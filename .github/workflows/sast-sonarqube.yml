@@ -1,10 +1,10 @@
 name: DevSecOps Pipeline
 
-on: 
-  push:
-    branches:  [ main ]
-  pull_request:
+on:
+  push: 
     branches: [ main ]
+  pull_request:
+    branches:  [ main ]
 
 jobs:
   security: 
@@ -13,7 +13,7 @@ jobs:
     steps:
       # 1. Checkout del código
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses:  actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -21,19 +21,17 @@ jobs:
       - name: SonarCloud Scan (SAST)
         uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.TU_ORGANIZATION_KEY }}
+          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Don't use 'with:  args' - let it read from sonar-project.properties
 
       # 3. DAST - Instalar dependencias
-      - name: Install dependencies
+      - name:  Install dependencies
         run: npm install
 
       # 4. DAST - Levantar la aplicación
       - name: Start vulnerable app
-        run:  |
+        run: |
           mkdir -p /tmp/app-logs
           nohup node app.js > /tmp/app-logs/app.log 2>&1 &
           sleep 5
@@ -45,19 +43,19 @@ jobs:
         run: |
           docker run --rm --network host ghcr.io/sullo/nikto \
             -h http://localhost:3000 \
-            -output /tmp/app-logs/nikto-report.html || true
+            -output /tmp/app-logs/nikto-report. html || true
           echo "Nikto scan completed"
 
       # 6. Mostrar logs de la aplicación
-      - name: Show app logs
+      - name:  Show app logs
         if: always()
         run: cat /tmp/app-logs/app.log 2>/dev/null || echo "No app log found"
 
       # 7. Subir reportes de seguridad
-      - name: Upload security reports
+      - name:  Upload security reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-reports
+          name:  security-reports
           path: /tmp/app-logs/
-          if-no-files-found: ignore
+          if-no-files-found:  ignore
