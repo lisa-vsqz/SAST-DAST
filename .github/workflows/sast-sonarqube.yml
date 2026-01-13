@@ -1,13 +1,13 @@
 name: DevSecOps Pipeline
 
-on:
+on: 
   push:
-    branches: [ main ]
+    branches:  [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  security:
+  security: 
     runs-on: ubuntu-latest
 
     steps:
@@ -21,12 +21,11 @@ jobs:
       - name: SonarCloud Scan (SAST)
         uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=PROJECT_KEY_REAL
-            -Dsonar.organization=ORGANIZATION_KEY_REAL
-
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.TU_ORGANIZATION_KEY }}
 
       # 3. DAST - Instalar dependencias
       - name: Install dependencies
@@ -34,7 +33,7 @@ jobs:
 
       # 4. DAST - Levantar la aplicación
       - name: Start vulnerable app
-        run: |
+        run:  |
           mkdir -p /tmp/app-logs
           nohup node app.js > /tmp/app-logs/app.log 2>&1 &
           sleep 5
